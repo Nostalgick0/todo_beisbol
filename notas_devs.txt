@@ -1,0 +1,6 @@
+Para la creación del proyecto:
+1.- en backend en la carpeta de schema está el código de creación de la base de datos puesto que esta cambió.
+2.- en datos.sql vienen datos de inserción de prueba.
+3.- en el .env poner contraseña si utilizan ampps.
+4.- index.js ya trae algunas respuestas de api
+5.- query.js ya trae algunas consultas
