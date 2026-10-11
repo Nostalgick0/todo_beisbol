@@ -62,10 +62,10 @@ async function insertCategoria(nom_categoria) {
     return rows;
 }
 
-async function actualizarCategoria(pk_categoria, nom_categoria) {
+async function actualizarCategoria(pk_categoria, nom_categoria, estatus) {
     const [rows] = await db.query(
-        'UPDATE categorias SET nom_categoria = ? WHERE pk_categoria = ?',
-        [nom_categoria, pk_categoria]
+        'UPDATE categorias SET nom_categoria = ?, estatus = ? WHERE pk_categoria = ?',
+        [nom_categoria, estatus, pk_categoria]
     );
 
     return rows;
@@ -107,10 +107,10 @@ async function insertSubcategoria(nom_subcategoria, fk_categoria) {
     return rows;
 }
 
-async function actualizarSubcategoria(pk_subcategoria, nom_subcategoria, fk_categoria) {
+async function actualizarSubcategoria(pk_subcategoria, nom_subcategoria, fk_categoria, estatus) {
     const [rows] = await db.query(
-        'UPDATE subcategorias SET nom_subcategoria = ?, fk_categoria = ? WHERE pk_subcategoria = ?',
-        [nom_subcategoria, fk_categoria, pk_subcategoria]
+        'UPDATE subcategorias SET nom_subcategoria = ?, fk_categoria = ?, estatus = ? WHERE pk_subcategoria = ?',
+        [nom_subcategoria, fk_categoria, estatus, pk_subcategoria]
     );
 
     return rows;
@@ -178,6 +178,33 @@ async function cambiarEstadoProducto(pk_prod, estatus) {
     return rows;
 }
 
+//registra un producto con su primera variante; si algo falla no se guarda nada
+async function insertProductoConVariante(p, v) {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [prod] = await connection.query(
+            'INSERT INTO productos (nom_prod, marca, fk_categoria, fk_subcategoria, estatus) VALUES (?, ?, ?, ?, 1)',
+            [p.nom_prod, p.marca, p.fk_categoria, p.fk_subcategoria || null]
+        );
+
+        await connection.query(
+            'INSERT INTO variantes (fk_producto, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock, estatus) \
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)',
+            [prod.insertId, v.estilo, v.talla, v.color, v.tipo_publico, v.tipo_caja || null, v.precio_venta, v.stock]
+        );
+
+        await connection.commit();
+        return { pk_prod: prod.insertId };
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
 //---------------------------------------------------------------------------------------------------
 
 //°---------------------------------°
@@ -189,9 +216,11 @@ async function cambiarEstadoProducto(pk_prod, estatus) {
 async function getVariantes() {
     const [rows] = await db.query(
         'SELECT v.pk_variante, v.fk_producto, p.nom_prod, v.estilo, v.talla, v.color, \
-                v.tipo_publico, v.tipo_caja, v.precio_venta, v.stock, v.estatus \
+                v.tipo_publico, v.tipo_caja, v.precio_venta, v.stock, v.estatus, \
+                (v.stock <= ?) AS bajo_stock \
         FROM variantes v \
-        LEFT JOIN productos p ON v.fk_producto = p.pk_prod'
+        LEFT JOIN productos p ON v.fk_producto = p.pk_prod',
+        [STOCK_BAJO]
     );
 
     return rows;
@@ -207,12 +236,12 @@ async function insertVariante(fk_producto, estilo, talla, color, tipo_publico, t
     return rows;
 }
 
-async function actualizarVariante(pk_variante, fk_producto, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock) {
+async function actualizarVariante(pk_variante, fk_producto, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock, estatus) {
     const [rows] = await db.query(
         'UPDATE variantes SET fk_producto = ?, estilo = ?, talla = ?, color = ?, tipo_publico = ?, \
-                tipo_caja = ?, precio_venta = ?, stock = ? \
+                tipo_caja = ?, precio_venta = ?, stock = ?, estatus = ? \
         WHERE pk_variante = ?',
-        [fk_producto, estilo, talla, color, tipo_publico, tipo_caja || null, precio_venta, stock, pk_variante]
+        [fk_producto, estilo, talla, color, tipo_publico, tipo_caja || null, precio_venta, stock, estatus, pk_variante]
     );
 
     return rows;
@@ -244,6 +273,7 @@ module.exports = {
     insertProducto,
     actualizarProducto,
     cambiarEstadoProducto,
+    insertProductoConVariante,
     getVariantes,
     insertVariante,
     actualizarVariante,

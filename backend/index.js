@@ -61,8 +61,8 @@ app.post('/insertarCategoria', async (req, res) => {
 
 app.post('/actualizarCategoria', async (req, res) => {
     try {
-        const { pk_categoria, nom_categoria } = req.body;
-        await query.actualizarCategoria(pk_categoria, nom_categoria);
+        const { pk_categoria, nom_categoria, estatus } = req.body;
+        await query.actualizarCategoria(pk_categoria, nom_categoria, estatus);
         res.json({ mensaje: 'Categoría actualizada correctamente' });
     } catch (error) {
         res.status(500).json({ error: 'Error al actualizar la categoría' });
@@ -108,8 +108,8 @@ app.post('/insertarSubcategoria', async (req, res) => {
 
 app.post('/actualizarSubcategoria', async (req, res) => {
     try {
-        const { pk_subcategoria, nom_subcategoria, fk_categoria } = req.body;
-        await query.actualizarSubcategoria(pk_subcategoria, nom_subcategoria, fk_categoria);
+        const { pk_subcategoria, nom_subcategoria, fk_categoria, estatus } = req.body;
+        await query.actualizarSubcategoria(pk_subcategoria, nom_subcategoria, fk_categoria, estatus);
         res.json({ mensaje: 'Subcategoría actualizada correctamente' });
     } catch (error) {
         res.status(500).json({ error: 'Error al actualizar la subcategoría' });
@@ -150,6 +150,20 @@ app.post('/insertarProducto', async (req, res) => {
         res.json({ mensaje: 'Producto insertado correctamente' });
     } catch (error) {
         res.status(500).json({ error: 'Error al insertar el producto' });
+    }
+});
+
+//registra un producto junto con su primera variante (todo o nada)
+app.post('/insertarProductoVariante', async (req, res) => {
+    try {
+        const { nom_prod, marca, fk_categoria, fk_subcategoria, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock } = req.body;
+        const resultado = await query.insertProductoConVariante(
+            { nom_prod, marca, fk_categoria, fk_subcategoria },
+            { estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock }
+        );
+        res.json({ mensaje: 'Producto registrado correctamente', ...resultado });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al registrar el producto' });
     }
 });
 
@@ -202,8 +216,8 @@ app.post('/insertarVariante', async (req, res) => {
 
 app.post('/actualizarVariante', async (req, res) => {
     try {
-        const { pk_variante, fk_producto, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock } = req.body;
-        await query.actualizarVariante(pk_variante, fk_producto, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock);
+        const { pk_variante, fk_producto, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock, estatus } = req.body;
+        await query.actualizarVariante(pk_variante, fk_producto, estilo, talla, color, tipo_publico, tipo_caja, precio_venta, stock, estatus);
         res.json({ mensaje: 'Variante actualizada correctamente' });
     } catch (error) {
         res.status(500).json({ error: 'Error al actualizar la variante' });

@@ -14,4 +14,3 @@ npm install
 npm run dev
 ```
 La URL del backend está en `frontend/src/Backend.jsx`.
-# todo_beisbol
