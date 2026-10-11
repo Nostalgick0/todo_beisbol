@@ -4,3 +4,13 @@ Para la creación del proyecto:
 3.- en el .env poner contraseña si utilizan ampps.
 4.- index.js ya trae algunas respuestas de api
 5.- query.js ya trae algunas consultas
+6.- para iniciar el proyecto 
+    Backend
+    cd backend
+    npm install
+    node index.js
+
+    Frontend
+    cd frontend
+    npm install
+    npm run dev

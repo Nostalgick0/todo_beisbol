@@ -4,8 +4,6 @@
 ```
 cd backend
 npm install
-mysql -u root -p < schema.sql
-mysql -u root -p < datos.sql     # opcional: datos de ejemplo + usuario admin / 1234
 node index.js
 ```
 
