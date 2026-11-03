@@ -7,11 +7,19 @@ import { Modal, Confirmar } from '../components/Modal.jsx'
 import { Campo, Entrada, Select, Lectura } from '../components/Campo.jsx'
 import { Search, Plus, Pencil } from '../components/Icons.jsx'
 
-const ESTADOS = [{ id: 1, nombre: 'Activas' }, { id: 0, nombre: 'Inactivas' }]
 const ESTATUS = [{ value: '1', label: 'Activo' }, { value: '0', label: 'Inactivo' }]
 
-// Pantalla genérica para categorías y subcategorías (lista + ver / registrar / editar / eliminar)
-export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategoria, Icono }) {
+// Pantalla genérica para categorías, subcategorías y proveedores (lista + ver / registrar / editar / eliminar)
+// masculino: "el proveedor" en lugar de "la categoría" (cambia artículos y el texto de los chips)
+// maxNombre: límite de caracteres del nombre (el de la columna en la bd)
+// textoDesactivar: reemplaza la pregunta del cuadro de confirmación
+export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategoria, Icono, masculino, maxNombre, textoDesactivar }) {
+  const art = masculino ? 'el' : 'la'
+  const del = masculino ? 'del' : 'de la'
+  const ESTADOS = masculino
+    ? [{ id: 1, nombre: 'Activos' }, { id: 0, nombre: 'Inactivos' }]
+    : [{ id: 1, nombre: 'Activas' }, { id: 0, nombre: 'Inactivas' }]
+
   const [items, setItems] = useState([])
   const [categorias, setCategorias] = useState([])
   const [busqueda, setBusqueda] = useState('')
@@ -52,7 +60,7 @@ export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategori
       setModal(null)
       cargar()
     } catch {
-      setError(`No se pudo guardar la ${singular}`)
+      setError(`No se pudo guardar ${art} ${singular}`)
     }
   }
 
@@ -62,7 +70,7 @@ export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategori
       setModal(null)
       cargar()
     } catch {
-      setError(`No se pudo actualizar la ${singular}`)
+      setError(`No se pudo actualizar ${art} ${singular}`)
     }
   }
 
@@ -77,7 +85,7 @@ export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategori
   return (
     <Pantalla
       titulo={titulo}
-      subtitulo={`Consulta las ${titulo.toLowerCase()}.`}
+      subtitulo={`Consulta ${masculino ? 'los' : 'las'} ${titulo.toLowerCase()}.`}
       accion={
         <button className="btn-agregar" onClick={() => abrir('registrar')} aria-label={`Agregar ${singular}`}>
           <Plus size={20} /><span>Agregar {singular}</span>
@@ -91,7 +99,7 @@ export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategori
         </label>
 
         <p className="etiqueta-seccion">Estatus</p>
-        <Chips opciones={ESTADOS} valor={estatus} onChange={setEstatus} />
+        <Chips opciones={ESTADOS} valor={estatus} onChange={setEstatus} todos={masculino ? 'Todos' : 'Todas'} />
 
         {error && !modal && <p className="error">{error}</p>}
 
@@ -111,7 +119,7 @@ export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategori
       {modal?.tipo === 'ver' && (
         <Modal titulo={`Ver ${singular}`} icono={iconoModal} onCerrar={() => setModal(null)}>
           <div className="formulario modal-form">
-            <Campo label={`Nombre de la ${singular}`}><Lectura valor={item[nom]} /></Campo>
+            <Campo label={`Nombre ${del} ${singular}`}><Lectura valor={item[nom]} /></Campo>
             {conCategoria && <Campo label="Nombre de la categoría asociada"><Lectura valor={item.nom_categoria} /></Campo>}
             <Campo label="Estatus"><Lectura valor={item.estatus === 1 ? 'Activo' : 'Inactivo'} /></Campo>
           </div>
@@ -127,8 +135,8 @@ export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategori
       {(modal?.tipo === 'registrar' || modal?.tipo === 'editar') && (
         <Modal titulo={`${modal.tipo === 'registrar' ? 'Registrar' : 'Editar'} ${singular}`} icono={iconoModal} onCerrar={() => setModal(null)}>
           <div className="formulario modal-form">
-            <Campo label={`Nombre de la ${singular}`}>
-              <Entrada placeholder={`Escribe el nombre de la ${singular}`} value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
+            <Campo label={`Nombre ${del} ${singular}`}>
+              <Entrada placeholder={`Escribe el nombre ${del} ${singular}`} maxLength={maxNombre} value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
             </Campo>
             {conCategoria && (
               <Campo label="Asociar a una categoría">
@@ -155,7 +163,7 @@ export default function Catalogo({ titulo, singular, pk, nom, rutas, conCategori
       {modal?.tipo === 'Desactivar' && (
         <Confirmar
           titulo={`Desactivar ${singular}`}
-          texto={`¿Estás seguro que deseas Desactivar la ${singular}?`}
+          texto={textoDesactivar || `¿Estás seguro que deseas Desactivar la ${singular}?`}
           onCancelar={() => setModal(null)}
           onConfirmar={() => cambiarEstado(item, 0)}
         />

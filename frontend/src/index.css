@@ -391,3 +391,10 @@ body {
 
 /* El botón de guardar es un <button> (inline-block): hay que hacerlo block para que margin:auto lo centre */
 .accion-fija > .btn-primario:not(.con-icono) { display: block; }
+
+/* ---------- Proveedores y entradas ---------- */
+.menu-item.actual { color: var(--azul); }
+.insignia.azul { border-color: var(--azul); color: var(--azul); }
+.formulario .total-badge, .modal-form .total-badge { align-self: flex-start; }
+.confirmar-detalle { padding: 8px 24px 0 36px; font-size: 14px; line-height: 1.5; color: var(--azul-oscuro); }
+.confirmar-detalle .negrita { font-weight: 700; }

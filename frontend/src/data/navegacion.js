@@ -6,5 +6,11 @@ export const SECCIONES_INVENTARIO = [
   { ruta: '/subcategorias', texto: 'Subcategorías', Icono: ListTree },
 ]
 
-// Aparecen en el diseño, pero la base de datos aún no tiene tablas para ellas
-export const OTRAS_SECCIONES = ['Entradas de Mercancía', 'Proveedores', 'Ventas']
+// Secciones de primer nivel que ya tienen pantalla
+export const SECCIONES = [
+  { ruta: '/entradas', texto: 'Entradas de Mercancía' },
+  { ruta: '/proveedores', texto: 'Proveedores' },
+]
+
+// Aparece en el diseño, pero la base de datos aún no tiene tablas para ella
+export const OTRAS_SECCIONES = ['Ventas']

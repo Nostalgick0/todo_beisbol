@@ -258,6 +258,209 @@ async function cambiarEstadoVariante(pk_variante, estatus) {
 
 //---------------------------------------------------------------------------------------------------
 
+//°---------------------------------°
+//|                                 |
+//|           PROVEEDORES           |
+//|                                 |
+//°---------------------------------°
+
+async function getProveedores() {
+    const [rows] = await db.query('SELECT pk_proveedor, nombre_proveedor, estatus FROM proveedores');
+
+    return rows;
+}
+
+async function insertProveedor(nombre_proveedor) {
+    const [rows] = await db.query(
+        'INSERT INTO proveedores (nombre_proveedor, estatus) VALUES (?, 1)',
+        [nombre_proveedor]
+    );
+
+    return rows;
+}
+
+async function actualizarProveedor(pk_proveedor, nombre_proveedor, estatus) {
+    const [rows] = await db.query(
+        'UPDATE proveedores SET nombre_proveedor = ?, estatus = ? WHERE pk_proveedor = ?',
+        [nombre_proveedor, estatus, pk_proveedor]
+    );
+
+    return rows;
+}
+
+async function cambiarEstadoProveedor(pk_proveedor, estatus) {
+    const [rows] = await db.query(
+        'UPDATE proveedores SET estatus = ? WHERE pk_proveedor = ?',
+        [estatus, pk_proveedor]
+    );
+
+    return rows;
+}
+
+//---------------------------------------------------------------------------------------------------
+
+//°---------------------------------°
+//|                                 |
+//|       ENTRADAS DE MERCANCÍA     |
+//|                                 |
+//°---------------------------------°
+
+//Una entrada ACTIVA suma su cantidad al stock de su variante. Por eso registrar, editar y
+//activar/desactivar una entrada también ajustan el stock (todo dentro de una transacción).
+
+//error "de negocio": el index.js lo regresa tal cual al frontend con código 400
+function errorNegocio(mensaje) {
+    const error = new Error(mensaje);
+    error.status = 400;
+    return error;
+}
+
+//ejecuta una función dentro de una transacción; si algo falla no se guarda nada
+async function enTransaccion(funcion) {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const resultado = await funcion(connection);
+        await connection.commit();
+        return resultado;
+    } catch (error) {
+        await connection.rollback();
+        throw error;
+    } finally {
+        connection.release();
+    }
+}
+
+//suma (o resta, si es negativo) piezas al stock de una variante sin dejarlo en negativo
+async function ajustarStock(connection, fk_variante, cantidad) {
+    if (cantidad === 0) return;
+
+    const [rows] = await connection.query(
+        'UPDATE variantes SET stock = stock + ? WHERE pk_variante = ? AND stock + ? >= 0',
+        [cantidad, fk_variante, cantidad]
+    );
+
+    if (rows.affectedRows === 0) {
+        throw errorNegocio('La variante no tiene existencia suficiente para este cambio');
+    }
+}
+
+function validarEntrada({ cantidad, costo_unidad }) {
+    if (!Number.isInteger(cantidad) || cantidad < 1) {
+        throw errorNegocio('La cantidad debe ser un número entero mayor a 0');
+    }
+    if (!(costo_unidad >= 0)) {
+        throw errorNegocio('El costo unitario no es válido');
+    }
+}
+
+//la variante tiene que pertenecer al producto elegido
+async function validarVariante(connection, fk_producto, fk_variante) {
+    const [rows] = await connection.query(
+        'SELECT 1 FROM variantes WHERE pk_variante = ? AND fk_producto = ?',
+        [fk_variante, fk_producto]
+    );
+
+    if (rows.length === 0) {
+        throw errorNegocio('La variante no pertenece al producto seleccionado');
+    }
+}
+
+//la fecha se regresa como texto (AAAA-MM-DD) para que no se corra por zona horaria
+async function getEntradas() {
+    const [rows] = await db.query(
+        "SELECT e.pk_entrada, e.fk_proveedor, pr.nombre_proveedor, DATE_FORMAT(e.fecha, '%Y-%m-%d') AS fecha, \
+                e.fk_producto, p.nom_prod, p.marca, e.fk_variante, v.estilo, v.talla, v.color, \
+                e.cantidad, e.costo_unidad, e.total, e.estatus \
+        FROM entradas_mercancia e \
+        LEFT JOIN proveedores pr ON e.fk_proveedor = pr.pk_proveedor \
+        LEFT JOIN productos p ON e.fk_producto = p.pk_prod \
+        LEFT JOIN variantes v ON e.fk_variante = v.pk_variante \
+        ORDER BY e.fecha DESC, e.pk_entrada DESC"
+    );
+
+    return rows;
+}
+
+//el total lo calcula el servidor (cantidad x costo unitario), no se confía en el del frontend
+async function insertEntrada(fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad) {
+    validarEntrada({ cantidad, costo_unidad });
+
+    return enTransaccion(async (connection) => {
+        await validarVariante(connection, fk_producto, fk_variante);
+
+        const [rows] = await connection.query(
+            'INSERT INTO entradas_mercancia (fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad, total, estatus) \
+            VALUES (?, ?, ?, ?, ?, ?, ROUND(? * ?, 2), 1)',
+            [fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad, cantidad, costo_unidad]
+        );
+
+        await ajustarStock(connection, fk_variante, cantidad);
+
+        return rows;
+    });
+}
+
+async function actualizarEntrada(pk_entrada, fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad, estatus) {
+    validarEntrada({ cantidad, costo_unidad });
+
+    return enTransaccion(async (connection) => {
+        //se bloquea la entrada para leer su estado anterior sin que nadie la cambie a la vez
+        const [anterior] = await connection.query(
+            'SELECT fk_variante, cantidad, estatus FROM entradas_mercancia WHERE pk_entrada = ? FOR UPDATE',
+            [pk_entrada]
+        );
+        if (anterior.length === 0) throw errorNegocio('La entrada no existe');
+
+        await validarVariante(connection, fk_producto, fk_variante);
+
+        //efecto neto en el stock de cada variante: se quita lo que aportaba antes y se pone lo nuevo
+        const cambios = new Map();
+        if (anterior[0].estatus === 1) {
+            cambios.set(anterior[0].fk_variante, -anterior[0].cantidad);
+        }
+        if (estatus === 1) {
+            cambios.set(fk_variante, (cambios.get(fk_variante) || 0) + cantidad);
+        }
+        for (const [variante, cambio] of cambios) {
+            await ajustarStock(connection, variante, cambio);
+        }
+
+        const [rows] = await connection.query(
+            'UPDATE entradas_mercancia SET fk_proveedor = ?, fecha = ?, fk_producto = ?, fk_variante = ?, \
+                    cantidad = ?, costo_unidad = ?, total = ROUND(? * ?, 2), estatus = ? \
+            WHERE pk_entrada = ?',
+            [fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad, cantidad, costo_unidad, estatus, pk_entrada]
+        );
+
+        return rows;
+    });
+}
+
+async function cambiarEstadoEntrada(pk_entrada, estatus) {
+    return enTransaccion(async (connection) => {
+        const [anterior] = await connection.query(
+            'SELECT fk_variante, cantidad, estatus FROM entradas_mercancia WHERE pk_entrada = ? FOR UPDATE',
+            [pk_entrada]
+        );
+        if (anterior.length === 0) throw errorNegocio('La entrada no existe');
+
+        //desactivar quita sus piezas del stock; activar las vuelve a poner
+        if (anterior[0].estatus !== estatus) {
+            await ajustarStock(connection, anterior[0].fk_variante, estatus === 1 ? anterior[0].cantidad : -anterior[0].cantidad);
+        }
+
+        const [rows] = await connection.query(
+            'UPDATE entradas_mercancia SET estatus = ? WHERE pk_entrada = ?',
+            [estatus, pk_entrada]
+        );
+
+        return rows;
+    });
+}
+
+//---------------------------------------------------------------------------------------------------
+
 //exportamos las funciones para poder utilizarlas
 module.exports = {
     login,
@@ -277,5 +480,13 @@ module.exports = {
     getVariantes,
     insertVariante,
     actualizarVariante,
-    cambiarEstadoVariante
+    cambiarEstadoVariante,
+    getProveedores,
+    insertProveedor,
+    actualizarProveedor,
+    cambiarEstadoProveedor,
+    getEntradas,
+    insertEntrada,
+    actualizarEntrada,
+    cambiarEstadoEntrada
 };

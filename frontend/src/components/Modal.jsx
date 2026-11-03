@@ -15,7 +15,7 @@ export function Modal({ titulo, icono, onCerrar, children }) {
   )
 }
 
-export function Confirmar({ titulo, texto, onCancelar, onConfirmar }) {
+export function Confirmar({ titulo, texto, onCancelar, onConfirmar, children }) {
   return (
     <div className="modal-fondo" onClick={onCancelar}>
       <div className="modal confirmar" onClick={(e) => e.stopPropagation()}>
@@ -25,6 +25,7 @@ export function Confirmar({ titulo, texto, onCancelar, onConfirmar }) {
           <button className="btn-icono" onClick={onCancelar} aria-label="Cerrar"><X /></button>
         </div>
         <p className="confirmar-texto">{texto}</p>
+        {children && <div className="confirmar-detalle">{children}</div>}
         <div className="modal-acciones">
           <button className="btn-borde gris" onClick={onCancelar}>Cancelar</button>
           <button className="btn-borde rojo" onClick={onConfirmar}>Desactivar</button>

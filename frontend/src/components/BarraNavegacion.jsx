@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Chevron, Logout } from './Icons.jsx'
-import { SECCIONES_INVENTARIO, OTRAS_SECCIONES } from '../data/navegacion.js'
+import { SECCIONES_INVENTARIO, SECCIONES, OTRAS_SECCIONES } from '../data/navegacion.js'
 
 // Barra superior para pantallas de escritorio (en celular y tablet se usa el menú lateral)
 export default function BarraNavegacion() {
@@ -56,6 +56,12 @@ export default function BarraNavegacion() {
               ))}
             </div>
           </div>
+
+          {SECCIONES.map(({ ruta, texto }) => (
+            <button key={ruta} className={`barra-link ${pathname.startsWith(ruta) ? 'actual' : ''}`} onClick={() => ir(ruta)}>
+              {texto}
+            </button>
+          ))}
 
           {OTRAS_SECCIONES.map((texto) => <button key={texto} className="barra-link">{texto}</button>)}
         </nav>

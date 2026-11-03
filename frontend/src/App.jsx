@@ -5,6 +5,9 @@ import ProductoNuevo from './pages/ProductoNuevo.jsx'
 import Variantes from './pages/Variantes.jsx'
 import Categorias from './pages/Categorias.jsx'
 import Subcategorias from './pages/Subcategorias.jsx'
+import Proveedores from './pages/Proveedores.jsx'
+import Entradas from './pages/Entradas.jsx'
+import EntradaNueva from './pages/EntradaNueva.jsx'
 
 function RutaPrivada({ children }) {
   return localStorage.getItem('usuario') ? children : <Navigate to="/login" replace />
@@ -20,6 +23,9 @@ export default function App() {
       <Route path="/productos/:id/variantes" element={<RutaPrivada><Variantes /></RutaPrivada>} />
       <Route path="/categorias" element={<RutaPrivada><Categorias /></RutaPrivada>} />
       <Route path="/subcategorias" element={<RutaPrivada><Subcategorias /></RutaPrivada>} />
+      <Route path="/proveedores" element={<RutaPrivada><Proveedores /></RutaPrivada>} />
+      <Route path="/entradas" element={<RutaPrivada><Entradas /></RutaPrivada>} />
+      <Route path="/entradas/nueva" element={<RutaPrivada><EntradaNueva /></RutaPrivada>} />
     </Routes>
   )
 }

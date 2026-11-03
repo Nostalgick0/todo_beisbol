@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Chevron, X, Logout } from './Icons.jsx'
-import { SECCIONES_INVENTARIO as SUB, OTRAS_SECCIONES } from '../data/navegacion.js'
+import { SECCIONES_INVENTARIO as SUB, SECCIONES, OTRAS_SECCIONES } from '../data/navegacion.js'
 
 const DURACION_SALIDA = 280 // ms, debe coincidir con la animación "panel-sube" del CSS
 
@@ -53,6 +53,16 @@ export default function Menu({ onCerrar }) {
             ))}
           </div>
         </div>
+
+        {SECCIONES.map(({ ruta, texto }) => (
+          <button
+            key={ruta}
+            className={`menu-item ${pathname.startsWith(ruta) ? 'actual' : ''}`}
+            onClick={() => cerrar(() => { if (pathname !== ruta) navigate(ruta) })}
+          >
+            {texto}
+          </button>
+        ))}
 
         {OTRAS_SECCIONES.map((texto) => <button key={texto} className="menu-item">{texto}</button>)}
 

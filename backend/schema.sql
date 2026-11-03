@@ -47,3 +47,24 @@ create table usuarios (
   rol int not null,
   estatus int not null default 1
 );
+
+create table proveedores (
+  pk_proveedor int primary key auto_increment,
+  nombre_proveedor varchar(50) not null,
+  estatus int not null default 1
+);
+
+create table entradas_mercancia (
+  pk_entrada int primary key auto_increment,
+  fk_proveedor int not null,
+  fecha date not null,
+  fk_producto int not null,
+  fk_variante int not null,
+  cantidad int not null,
+  costo_unidad decimal(10,2) not null,
+  total decimal(10,2) not null,
+  estatus int not null default 1,
+  foreign key (fk_proveedor) references proveedores(pk_proveedor),
+  foreign key (fk_producto) references productos(pk_prod),
+  foreign key (fk_variante) references variantes(pk_variante)
+);

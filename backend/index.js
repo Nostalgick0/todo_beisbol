@@ -236,6 +236,103 @@ app.post('/cambiarEstadoVariante', async (req, res) => {
 
 //---------------------------------------------------------------------------------------------------
 
+//°---------------------------------°
+//|                                 |
+//|           PROVEEDORES           |
+//|                                 |
+//°---------------------------------°
+
+app.get('/obtenerProveedores', async (req, res) => {
+    try {
+        const proveedores = await query.getProveedores();
+        res.json(proveedores);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener los proveedores' });
+    }
+});
+
+app.post('/insertarProveedor', async (req, res) => {
+    try {
+        const { nombre_proveedor } = req.body;
+        await query.insertProveedor(nombre_proveedor);
+        res.json({ mensaje: 'Proveedor insertado correctamente' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al insertar el proveedor' });
+    }
+});
+
+app.post('/actualizarProveedor', async (req, res) => {
+    try {
+        const { pk_proveedor, nombre_proveedor, estatus } = req.body;
+        await query.actualizarProveedor(pk_proveedor, nombre_proveedor, estatus);
+        res.json({ mensaje: 'Proveedor actualizado correctamente' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar el proveedor' });
+    }
+});
+
+app.post('/cambiarEstadoProveedor', async (req, res) => {
+    try {
+        const { pk_proveedor, estatus } = req.body;
+        await query.cambiarEstadoProveedor(pk_proveedor, estatus);
+        res.json({ mensaje: 'Estado del proveedor actualizado correctamente' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar el estado del proveedor' });
+    }
+});
+
+//---------------------------------------------------------------------------------------------------
+
+//°---------------------------------°
+//|                                 |
+//|       ENTRADAS DE MERCANCÍA     |
+//|                                 |
+//°---------------------------------°
+
+//Si la query lanza un error de negocio (con status 400) se regresa su mensaje tal cual;
+//cualquier otro error regresa el mensaje genérico con código 500.
+
+app.get('/obtenerEntradas', async (req, res) => {
+    try {
+        const entradas = await query.getEntradas();
+        res.json(entradas);
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener las entradas' });
+    }
+});
+
+app.post('/insertarEntrada', async (req, res) => {
+    try {
+        const { fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad } = req.body;
+        await query.insertEntrada(fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad);
+        res.json({ mensaje: 'Entrada insertada correctamente' });
+    } catch (error) {
+        res.status(error.status || 500).json({ error: error.status ? error.message : 'Error al insertar la entrada' });
+    }
+});
+
+app.post('/actualizarEntrada', async (req, res) => {
+    try {
+        const { pk_entrada, fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad, estatus } = req.body;
+        await query.actualizarEntrada(pk_entrada, fk_proveedor, fecha, fk_producto, fk_variante, cantidad, costo_unidad, estatus);
+        res.json({ mensaje: 'Entrada actualizada correctamente' });
+    } catch (error) {
+        res.status(error.status || 500).json({ error: error.status ? error.message : 'Error al actualizar la entrada' });
+    }
+});
+
+app.post('/cambiarEstadoEntrada', async (req, res) => {
+    try {
+        const { pk_entrada, estatus } = req.body;
+        await query.cambiarEstadoEntrada(pk_entrada, estatus);
+        res.json({ mensaje: 'Estado de la entrada actualizado correctamente' });
+    } catch (error) {
+        res.status(error.status || 500).json({ error: error.status ? error.message : 'Error al actualizar el estado de la entrada' });
+    }
+});
+
+//---------------------------------------------------------------------------------------------------
+
 app.listen(PORT, () => {
     console.log(`http://localhost:${PORT}`);
 });
